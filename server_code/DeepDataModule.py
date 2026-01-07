@@ -69,6 +69,11 @@ def run(text):
   mode="none"
   d1=[]
   d2=[]
+  j=0
+  for i in w:
+    if i[len(i)-1]=="'s":
+      w[j]=i[:-1]
+    j+=1
   for i in w:
     ignore=['a','an']
     modeset=["is","are"]
@@ -87,8 +92,10 @@ def run(text):
     d2=clean(app_tables.database,d2)[:]
     s1=" ".join(d1)
     s2=" ".join(d2)
+    for i in app_tables.database.search():
+      s2=replace(s2,i['Names'],i['Object'])
     if not hasdata(app_tables.database,s1):
       app_tables.database.add_row(ID=str(len(app_tables.database.search())),Names=s1,Object=str(s2))
     else:
-      getrow(app_tables.database,s1)['Object']+="\n"+str(s2)
+      getrow(app_tables.database,s1)['Object']+="----"+str(s2)
   return "MODE: "+mode+"!"
