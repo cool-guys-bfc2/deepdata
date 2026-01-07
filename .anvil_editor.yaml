@@ -1,9 +1,11 @@
 unique_ids:
   assets:
+    DeepData logo.png: '176781101174350791787190.27433'
     standard-page.html: FIPWUACVY4WP54QDFYKHOXKAJYWCRPUQ
     theme.css: WRMK2UMBQ6EPFGDUHM4FOWIABB5K33TV
   forms:
     Form1: UEDLZ247YUOREGAXH3ZDOQINP3J5MSVO
   modules: {}
   scripts: {}
-  server_modules: {}
+  server_modules:
+    DeepDataModule: '1767811143998739914569553.9115'
