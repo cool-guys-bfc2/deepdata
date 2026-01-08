@@ -74,20 +74,28 @@ def run(text):
     if i[len(i)-1]=="'s":
       w[j]=i[:-1]
     j+=1
+  index=0
   for i in w:
     ignore=['a','an']
     modeset=["is","are"]
+    if i in modeset and index!=0:
+      if w[index-1] not in ['that',"which"]:
+        mode="set"
+        continue
+    modeval=['what']
     if i in modeset:
-      mode="set"
-      continue
+      for j in modeval:
+        if j in w:
+          mode="val"
     if mode=="none":
       for j in modeset:
         if j in w:
-          if i not in ignore:
+          if i not in ignore and i not in modeval:
             d1.append(i)
             break
-    if mode=="set":
+    if mode=="set" or mode=="val":
       d2.append(i)
+    index+=1
   if mode=="set":
     d2=clean(app_tables.database,d2)[:]
     s1=" ".join(d1)
@@ -98,4 +106,8 @@ def run(text):
       app_tables.database.add_row(ID=str(len(app_tables.database.search())),Names=s1,Object=str(s2))
     else:
       getrow(app_tables.database,s1)['Object']+="----"+str(s2)
+  if mode=="val":
+    s1=" ".join(d1)
+    s2=" ".join(d2)
+    return s1+" is "
   return "MODE: "+mode+"!"
