@@ -3,158 +3,107 @@ import anvil.tables.query as q
 from anvil.tables import app_tables
 import anvil.server
 import requests
-
-# Words to ignore during the internal definition linkage process
-operation_words = ["a", "and", "an", "is", "are", "or", "not", "the"]
-
-@anvil.server.callable
-def replace(x, k, v=""):
-  """Utility to replace substrings safely."""
-  return v.join(str(x).split(str(k)))
-
-@anvil.server.callable
-def hasdata(t, name):
-  """Check if a name exists in the database table."""
-  return len(t.search(Names=name)) > 0
-
-@anvil.server.callable
-def getrow(t, name):
-  """
-    Safely retrieves a row. 
-    Returns a fallback dict if not found to prevent 'string indices' errors.
-    """
-  results = t.search(Names=name)
-  if len(results) > 0:
-    # Return the actual row object
-    return results[0]
-    # Fallback dictionary prevents crash if row is missing
-  return {"Object": "Unknown", "Names": name}
-
-@anvil.server.callable
-def clean(t, l):
-  """Replaces words in a list with their database definitions if they exist."""
-  global operation_words
-  new_list = l[:]
-  for i, word in enumerate(new_list):
-    if word.lower() in operation_words:
-      continue
-    if hasdata(t, word):
-      row = getrow(t, word)
-      new_list[i] = str(row['Object'])
-  return new_list
-
-@anvil.server.callable
-def filter_text(x):
-  """Removes numbers and filler words from the subject string for cleaner searching."""
-  y = x.lower()
-  ignore = ["an", "a", "the", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"]
-  words = y.split()
-  result = [w for w in words if w not in ignore]
-  return " ".join(result)
+import re
 
 @anvil.server.callable
 def run(rtext):
   """
-    Core AI Logic. 
-    'Set' mode: [Subject] is [Fact]
-    'Val' mode: What is [Subject]
+    Main AI logic. Processes facts, questions, and mathematical clauses.
     """
-  text = rtext.strip()
+  text = rtext.strip().lower()
   if not text:
     return ""
 
-  data = app_tables.database
-  w = text.split(' ')
+  db = app_tables.database
 
-  # Clean possessives (e.g. "Sky's" -> "Sky")
-  w = [word[:-2] if word.lower().endswith("'s") else word for word in w]
+  # 1. EXTRACT NUMBERS (for math clauses)
+  # Finds integers and decimals
+  nums = re.findall(r"[-+]?\d*\.\d+|\d+", text)
 
-  modeset = ["is", "are"]
-  modeval = ["what", "who", "where"]
+  # 2. CHECK FOR LEARNED CLAUSES (e.g., 'plus is <x> + <y>')
+  # We look for any word in the sentence that matches a 'Name' in our database
+  words = text.split()
+  for word in words:
+    row = db.get(Names=word)
+    if row and "<x>" in str(row['Object']):
+      expression = str(row['Object'])
 
-  # Determine Mode
-  mode = "none"
-  word_list_lower = [word.lower() for word in w]
+      # If we have at least 2 numbers, execute the logic
+      if len(nums) >= 2:
+        try:
+          # Replace placeholders with the found numbers
+          # nums[0] is <x>, nums[1] is <y>
+          safe_expr = expression.replace("<x>", nums[0]).replace("<y>", nums[1])
 
-  if any(m in word_list_lower for m in modeval):
-    mode = "val"
-  elif any(m in word_list_lower for m in modeset):
-    mode = "set"
+          # Safe Eval: No access to system built-ins
+          result = eval(safe_expr, {"__builtins__": None}, {})
+          return f"the {word} of {nums[0]} and {nums[1]} is {result}"
+        except Exception as e:
+          return f"error calculating {word}: {str(e)}"
 
-    # Separate Subject (d1) and Object (d2)
-  d1, d2 = [], []
-  found_verb = False
-  for i in w:
-    if i.lower() in modeset:
-      found_verb = True
-      continue
-    if not found_verb:
-      # Building the subject
-      if i.lower() not in modeval and i.lower() not in ["a", "an", "the"]:
-        d1.append(i)
+    # 3. SET/VAL LOGIC (is/are)
+    # Handles "what is the sun" or "the sun is a star"
+  if " is " in text or " are " in text:
+    verb = " is " if " is " in text else " are "
+    parts = text.split(verb, 1)
+    subject = parts[0].replace("what", "").strip()
+    description = parts[1].strip()
+
+    # If it's a question (starts with 'what')
+    if text.startswith("what"):
+      row = db.get(Names=subject)
+      if row:
+        return f"{subject} {verb} {row['Object']}"
+      else:
+        return f"i do not know what {subject} {verb} yet"
+
+        # If it's a statement, learn it
     else:
-      # Building the description
-      d2.append(i)
+      existing = db.get(Names=subject)
+      if not existing:
+        db.add_row(ID=str(len(db.search())), Names=subject, Object=description)
+      else:
+        existing['Object'] = description # Update knowledge
+      return f"confirmed: {subject} {verb} {description}"
 
-    # ACTION: LEARN (Set Mode)
-  if mode == "set" and d1 and d2:
-    s1 = " ".join(d1).strip()
-    # Resolve any internal references in the description (AI "thinks" about what it already knows)
-    d2_resolved = clean(data, d2)
-    s2 = " ".join(d2_resolved).strip()
-
-    if not hasdata(data, s1):
-      data.add_row(ID=str(len(data.search())), Names=s1, Object=s2)
-    else:
-      row = getrow(data, s1)
-      # Update existing knowledge if it's a real Row object (not the fallback dict)
-      if not isinstance(row, dict):
-        row['Object'] += " and " + s2
-    return f"Confirmed: {s1} is {s2}"
-
-    # ACTION: ANSWER (Val Mode)
-  if mode == "val":
-    subject = filter_text(" ".join(d2))
-    row = getrow(data, subject)
-    if row["Object"] == "Unknown":
-      return f"I do not know what '{subject}' is yet."
-    return f"{subject} is {row['Object']}"
-
-  return "Mode detected: " + mode
+  return "i heard you, but i do not have a rule for that yet."
 
 @anvil.server.callable
 def learnfromurl(url):
   """
-    Fetches text from a URL and teaches the AI line by line.
-    Prints progress to the Anvil Console for real-time monitoring.
+    Reads a raw text file from a URL to teach the AI line by line.
     """
   try:
-    print(f"--- STARTING KNOWLEDGE ACQUISITION: {url} ---")
-    response = requests.get(url, timeout=15)
-    content = response.text
+    print(f"--- accessing: {url} ---")
+    # Standard 2026 headers to bypass bot-blocks
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    response = requests.get(url, headers=headers, timeout=10)
 
-    # Split into sentences based on common punctuation
-    lines = content.replace(".", "\n").replace("?", "\n").replace("!", "\n").split("\n")
+    if response.status_code != 200:
+      print(f"failed to load. status code: {response.status_code}")
+      return
 
+      # Split by sentence-ending markers
+    lines = response.text.replace(".", "\n").replace("?", "\n").split("\n")
     learned_count = 0
+
     for line in lines:
-      clean_line = line.strip()
-
-      # 2026 Complexity Filter: Skip sentences with logic your AI can't handle yet
-      bad_triggers = [" if ", " whether ", " but ", " however ", " although ", " maybe "]
-      if any(trigger in clean_line.lower() for trigger in bad_triggers):
-        continue
-
-        # Length filter: Ignore headers, single words, or massive paragraphs
-      word_count = len(clean_line.split())
-      if 3 <= word_count <= 15:
-        # Check for "is" or "are" to ensure it's a declarative fact
-        if any(verb in f" {clean_line.lower()} " for verb in [" is ", " are "]):
-          result = run(clean_line)
-          print(f"LEARNED: {clean_line}")
+      clean_line = line.strip().lower()
+      # Complexity Filter: Only learn clean 'is/are' statements
+      if any(v in f" {clean_line} " for v in [" is ", " are "]):
+        # Skip long sentences to keep logic simple
+        if 3 <= len(clean_line.split()) <= 15:
+          run(clean_line)
+          print(f"learned: {clean_line}")
           learned_count += 1
 
-    print(f"--- SUCCESS: Learned {learned_count} new facts from source. ---")
-
+    print(f"--- finished. learned {learned_count} statements. ---")
   except Exception as e:
-    print(f"--- ERROR: Could not process URL. {str(e)} ---")
+    print(f"url error: {str(e)}")
+
+@anvil.server.callable
+def reset_database():
+  """Clear all knowledge (Optional utility)."""
+  for row in app_tables.database.search():
+    row.delete()
+  return "database cleared"
