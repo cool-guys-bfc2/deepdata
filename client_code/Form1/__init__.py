@@ -3,6 +3,7 @@ from anvil import *
 import anvil.server
 import anvil.tables as tables
 import anvil.tables.query as q
+import random
 from anvil.tables import app_tables
 
 class Form1(Form1Template):
@@ -12,7 +13,7 @@ class Form1(Form1Template):
 
     # Initialize the Conversation ID as None 
     # (The server will generate one on the first call)
-    self.conversation_id = None
+    self.conversation_id = random.randint(100,999)
 
   @handle("button_send", "click")
   def button_send_click(self, **event_args):
@@ -21,13 +22,22 @@ class Form1(Form1Template):
 
     if not user_input:
       return
-
     # 1. Clear input box immediately for better UX
     self.text_box_input.text = ""
-
+    if user_input.startswith("http://") or user_input.startswith("https://"):
+      res=""
+      if user_input.startswith('http://en.wikipedia.org/wiki/') or user_input.startswith('https://en.wikipedia.org/wiki/'):
+        res=anvil.server.call('learn_from_wikipedia',user_input)
+      else:
+        res=anvil.server.call('learn_from_url',user_input)
+      self.label_1.text+="\nYou: "+user_input
+      self.label_1.text+="\nAI: "+res
+      return
+      
+        
     # 2. Add user message to UI (optional: create a custom label or row)
     print(f"User: {user_input}") 
-
+    self.label_1.text+="\nYou: "+user_input
     # 3. Call the AI Server Module
     # We pass our current conversation_id so the AI remembers us
     try:
@@ -41,12 +51,12 @@ class Form1(Form1Template):
       else:
         ai_response=result
         if not self.conversation_id:
-          self.conversation_id="???"
+          self.conversation_id=random.randint(100,999)
 
       # Display the AI's response in a Label or Alert
       # In 2026, using notification or adding to a chat list is standard
       Notification(f"AI (ID {str(self.conversation_id)}): {ai_response}").show()
-      self.label_1.text+="\nAi: "+ai_response
+      self.label_1.text+="\nAi("+str(self.conversation_id)+"): "+ai_response
     except Exception as e:
       alert(f"An error occurred: {str(e)}")
 
