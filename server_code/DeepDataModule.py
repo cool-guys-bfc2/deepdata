@@ -8,102 +8,111 @@ import re
 @anvil.server.callable
 def run(rtext):
   """
-    Main AI logic. Processes facts, questions, and mathematical clauses.
+    2026 AI Logic: Handles facts, 1-arg string/math functions, 
+    and 2-arg math functions.
     """
   text = rtext.strip().lower()
   if not text:
     return ""
 
   db = app_tables.database
-
-  # 1. EXTRACT NUMBERS (for math clauses)
-  # Finds integers and decimals
-  nums = re.findall(r"[-+]?\d*\.\d+|\d+", text)
-
-  # 2. CHECK FOR LEARNED CLAUSES (e.g., 'plus is <x> + <y>')
-  # We look for any word in the sentence that matches a 'Name' in our database
   words = text.split()
+
+  # 1. EXTRACT DATA
+  # Find all numbers (floats or ints)
+  nums = re.findall(r"[-+]?\d*\.\d+|\d+", text)
+  # Find words that aren't grammar keywords to use as string inputs
+  potential_inputs = [w for w in words if w not in ["is", "are", "what", "the", "a", "an"]]
+
+  # 2. CHECK FOR FUNCTIONS (<x>, <y>)
   for word in words:
     row = db.get(Names=word)
     if row and "<x>" in str(row['Object']):
       expression = str(row['Object'])
 
-      # If we have at least 2 numbers, execute the logic
-      if len(nums) >= 2:
+      # --- Two-Argument Case (e.g., 'plus is <x> + <y>') ---
+      if "<y>" in expression and len(nums) >= 2:
         try:
-          # Replace placeholders with the found numbers
-          # nums[0] is <x>, nums[1] is <y>
           safe_expr = expression.replace("<x>", nums[0]).replace("<y>", nums[1])
-
-          # Safe Eval: No access to system built-ins
-          result = eval(safe_expr, {"__builtins__": None}, {})
+          # We allow builtins here so math and string methods work
+          result = eval(safe_expr, {"__builtins__": __builtins__}, {})
           return f"the {word} of {nums[0]} and {nums[1]} is {result}"
         except Exception as e:
-          return f"error calculating {word}: {str(e)}"
+          return f"math error: {str(e)}"
 
-    # 3. SET/VAL LOGIC (is/are)
-    # Handles "what is the sun" or "the sun is a star"
+          # --- Single-Argument Case (e.g., 'reverse is <x>[::-1]') ---
+      elif "<x>" in expression:
+        # Use a number if available; otherwise use the first word that isn't the command
+        raw_val = None
+        if nums:
+          raw_val = nums[0]
+        else:
+          # Filter out the function name itself from inputs
+          args = [i for i in potential_inputs if i != word]
+          if args:
+            raw_val = args[0]
+
+        if raw_val:
+          try:
+            # If input is text, wrap it in quotes so eval treats it as a string
+            is_num = raw_val.replace('.','',1).isdigit()
+            formatted_val = raw_val if is_num else f"'{raw_val}'"
+
+            safe_expr = expression.replace("<x>", formatted_val)
+            # Fix: Don't set builtins to None; required for slicing/methods
+            result = eval(safe_expr, {"__builtins__": __builtins__}, {})
+            return f"{word} {raw_val} results in: {result}"
+          except Exception as e:
+            return f"error in {word}: {str(e)}"
+
+    # 3. FACT LEARNING & RETRIEVAL (is/are)
   if " is " in text or " are " in text:
     verb = " is " if " is " in text else " are "
     parts = text.split(verb, 1)
-    subject = parts[0].replace("what", "").strip()
+    # Clean subject: "what is the sun" -> "sun"
+    subject = parts[0].replace("what", "").replace("the", "").strip()
+    subject= subject.replace("of","").replace("  "," ")
     description = parts[1].strip()
 
-    # If it's a question (starts with 'what')
     if text.startswith("what"):
       row = db.get(Names=subject)
       if row:
         return f"{subject} {verb} {row['Object']}"
-      else:
-        return f"i do not know what {subject} {verb} yet"
-
-        # If it's a statement, learn it
+      return f"i do not know what {subject} {verb} yet"
     else:
       existing = db.get(Names=subject)
       if not existing:
         db.add_row(ID=str(len(db.search())), Names=subject, Object=description)
       else:
-        existing['Object'] = description # Update knowledge
-      return f"confirmed: {subject} {verb} {description}"
+        existing['Object'] = description 
+      return f"learned: {subject} {verb} {description}"
 
   return "i heard you, but i do not have a rule for that yet."
 
 @anvil.server.callable
 def learnfromurl(url):
-  """
-    Reads a raw text file from a URL to teach the AI line by line.
-    """
+  """Fetches text from a URL and learns 'is/are' facts."""
   try:
-    print(f"--- accessing: {url} ---")
-    # Standard 2026 headers to bypass bot-blocks
     headers = {'User-Agent': 'Mozilla/5.0'}
     response = requests.get(url, headers=headers, timeout=10)
-
     if response.status_code != 200:
-      print(f"failed to load. status code: {response.status_code}")
-      return
+      return f"Error: Status {response.status_code}"
 
-      # Split by sentence-ending markers
     lines = response.text.replace(".", "\n").replace("?", "\n").split("\n")
-    learned_count = 0
-
+    count = 0
     for line in lines:
-      clean_line = line.strip().lower()
-      # Complexity Filter: Only learn clean 'is/are' statements
-      if any(v in f" {clean_line} " for v in [" is ", " are "]):
-        # Skip long sentences to keep logic simple
-        if 3 <= len(clean_line.split()) <= 15:
-          run(clean_line)
-          print(f"learned: {clean_line}")
-          learned_count += 1
-
-    print(f"--- finished. learned {learned_count} statements. ---")
+      clean = line.strip().lower()
+      if any(v in f" {clean} " for v in [" is ", " are "]):
+        if 3 <= len(clean.split()) <= 15:
+          run(clean)
+          count += 1
+    return f"Finished. Learned {count} statements."
   except Exception as e:
-    print(f"url error: {str(e)}")
+    return f"URL Error: {str(e)}"
 
 @anvil.server.callable
 def reset_database():
-  """Clear all knowledge (Optional utility)."""
+  """Wipes the knowledge base."""
   for row in app_tables.database.search():
     row.delete()
-  return "database cleared"
+  return "Database cleared."
