@@ -34,6 +34,20 @@ db_schema:
       type: string
     server: full
     title: Database
+  session:
+    client: none
+    columns:
+    - admin_ui: {order: 0, width: 200}
+      name: id
+      type: number
+    - admin_ui: {order: 1, width: 200}
+      name: key
+      type: string
+    - admin_ui: {order: 2, width: 200}
+      name: value
+      type: string
+    server: full
+    title: session
 dependencies: []
 metadata: {description: A basic artificial action intelligence or AaI, logo_img: 'asset:DeepData logo.png', title: 'DeepData: AI'}
 name: DeepData
@@ -42,7 +56,7 @@ renamed: true
 runtime_options:
   client_version: '3'
   legacy_features: {bootstrap3: true, class_names: true}
-  server_spec: {base: python310-machine-learning}
+  server_spec: {base: python310-standard}
   version: 3
 services:
 - client_config: {}
