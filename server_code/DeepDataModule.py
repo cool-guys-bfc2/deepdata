@@ -142,11 +142,13 @@ def run_logic(text):
     fn_name = text[3:].strip()
     return run_action(fn_name, {})
 
-    # Learn
-  if " is " in text:
-    parts = text.split(" is ", 1)
-    db.add_row(Names=parts[0].strip(), Object=parts[1].strip())
-    return f"Confirmed: {parts[0].strip()} is {parts[1].strip()}"
+  for i in [" is "," are "]:
+    if " is " in text:
+      parts = text.split(" is ", 1)
+      if parts[0].endswith('that') or parts[0].endswith('which'):
+        return "sorry, i can't do that yet"
+      db.add_row(Names=parts[0].strip(), Object=parts[1].strip())
+      return f"Confirmed: {parts[0].strip()} is {parts[1].strip()}"
 
   return "I heard you, but I have no rule for that command yet."
 

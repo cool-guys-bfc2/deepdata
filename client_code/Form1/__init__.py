@@ -46,7 +46,7 @@ class Form1(Form1Template):
       # Display the AI's response in a Label or Alert
       # In 2026, using notification or adding to a chat list is standard
       Notification(f"AI (ID {str(self.conversation_id)}): {ai_response}").show()
-
+      self.label_1.text+="\nAi: "+ai_response
     except Exception as e:
       alert(f"An error occurred: {str(e)}")
 
