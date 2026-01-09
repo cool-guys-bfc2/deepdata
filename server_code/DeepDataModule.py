@@ -1,3 +1,4 @@
+import anvil.secrets
 import anvil.tables as tables
 import anvil.tables.query as q
 from anvil.tables import app_tables
@@ -9,7 +10,7 @@ import random
 from bs4 import BeautifulSoup
 
 # --- CONFIGURATION ---
-DICTIONARY_URL = "raw.githubusercontent.com"
+DICTIONARY_URL=anvil.secrets.get_secret('englishdict')
 cached_dict = set()
 
 def get_dictionary():

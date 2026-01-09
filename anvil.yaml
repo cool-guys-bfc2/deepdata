@@ -58,9 +58,16 @@ runtime_options:
   legacy_features: {bootstrap3: true, class_names: true}
   server_spec: {base: python310-standard}
   version: 3
+secrets:
+  englishdict:
+    type: secret
+    value: {JZXXM4QNBUZC775B: e5H/q4qvlMIVRPBVn8WTutrQhI9nh5IYuQzeVmIe4SUv+JGbxyf7zY5nRriYeYcaCKgmZA1nDh+zn4kUxSCkzp0uHVlWBBvjkp5a16QyRj/7xsC4L6YMfRl6s2pNTjOzEBvwSs4gmXeI07lgnZ57tzwcsXepkh1NxMvoY8Vvzaen80bcsrOSN7vjGJxfReCdnC+GT/Yh9WJiVRPWU7mEkaZrt7EgbD67SvIA3HztLm08fiXhpa2X}
 services:
 - client_config: {}
   server_config: {}
   source: /runtime/services/tables.yml
+- client_config: {}
+  server_config: {}
+  source: /runtime/services/anvil/secrets.yml
 startup_form: Form1
 uplink_visible: true
