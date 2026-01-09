@@ -4,15 +4,21 @@ components:
     name: label_id_display
     properties: {}
     type: Label
-  - layout_properties: {grid_position: 'GBUEMA,ZBOZFA'}
+  - layout_properties: {grid_position: 'QBGUEU,AVZPJF'}
     name: text_box_input
     properties: {align: center, bold: true, placeholder: Write message here…, tooltip: Write message here…}
     type: TextArea
   - event_bindings: {}
-    layout_properties: {grid_position: 'AGXPRO,BMAHIT'}
+    layout_properties: {grid_position: 'BVVSIA,EEKSCK'}
     name: button_send
-    properties: {bold: true, icon: 'fa:arrow-right', italic: false, role: outlined-button, text: Submit, underline: true}
+    properties: {bold: true, icon: 'fa:arrow-circle-right', icon_align: right, italic: false, role: outlined-button, text: Submit, underline: true}
     type: Button
+  - layout_properties: {grid_position: 'OEXIFP,NPUYQE'}
+    name: label_1
+    properties:
+      text: |
+        AI Responses
+    type: Label
   layout_properties: {slot: default}
   name: content_panel
   properties: {col_widths: '{}'}
@@ -22,10 +28,8 @@ components:
   properties: {}
   type: FlowPanel
 - layout_properties: {slot: title}
-  name: label_1
-  properties:
-    text: |
-      AI Responses
+  name: label_2
+  properties: {align: left, bold: true, icon: 'fa:commenting-o', text: 'DeepData '}
   type: Label
 container:
   properties: {html: '@theme:standard-page.html'}

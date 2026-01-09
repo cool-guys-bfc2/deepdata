@@ -2,7 +2,7 @@ import anvil.tables as tables
 import anvil.tables.query as q
 from anvil.tables import app_tables
 import anvil.server
-from anvil.server import callable # Explicit import to fix the AttributeError
+from anvil.server import callable
 import requests
 import re
 import random
@@ -26,59 +26,54 @@ def get_dictionary():
   return cached_dict
 
 def get_levenshtein(s1, s2):
-  """Calculates the edit distance rating between two words."""
+  """Calculates the edit distance rating (Lower = Closer)."""
   if len(s1) < len(s2): return get_levenshtein(s2, s1)
   if len(s2) == 0: return len(s1)
-  previous_row = range(len(s2) + 1)
+  prev = range(len(s2) + 1)
   for i, c1 in enumerate(s1):
-    current_row = [i + 1]
+    curr = [i + 1]
     for j, c2 in enumerate(s2):
-      insertions = previous_row[j + 1] + 1
-      deletions = current_row[j] + 1
-      substitutions = previous_row[j] + (c1 != c2)
-      current_row.append(min(insertions, deletions, substitutions))
-    previous_row = current_row
-  return previous_row[-1]
+      ins, dele, subs = prev[j+1]+1, curr[j]+1, prev[j]+(c1!=c2)
+      curr.append(min(ins, dele, subs))
+    prev = curr
+  return prev[-1]
 
 def generate_unique_3digit_id():
-  """Generates a unique ID (100-999). Clears 10 oldest rows if pool is full."""
+  """Generates unique ID (100-999). Clears 10 oldest rows if full."""
   used_ids = {r['id'] for r in app_tables.session.search()}
   all_possible = set(range(100, 1000))
-  available_ids = list(all_possible - used_ids)
+  available = list(all_possible - used_ids)
 
-  if not available_ids:
-    # Delete 10 oldest rows to free up space
-    old_rows = list(app_tables.session.search())[:10]
-    for row in old_rows:
-      row.delete()
+  if not available:
+    for row in list(app_tables.session.search())[:10]: row.delete()
     used_ids = {r['id'] for r in app_tables.session.search()}
-    available_ids = list(all_possible - used_ids)
+    available = list(all_possible - used_ids)
 
-  return random.choice(available_ids)
+  return random.choice(available)
 
 @callable
 def run(rtext, conversation_id=None):
-  """Entry Point. Handles Autocorrect and logic delegation."""
+  """Entry Point. Manages Session State, Autocorrect, and Logic."""
   if conversation_id is None:
     conversation_id = generate_unique_3digit_id()
 
   text = rtext.strip().lower()
   if not text: return {"response": "", "id": conversation_id}
 
-    # 1. SESSION STATE: Check for Yes/No correction
+    # 1. SESSION STATE: Check for correction confirmation
   state = app_tables.session.get(id=conversation_id, key="pending_correction")
   if state and state['value']:
     pending_data = eval(state['value'])
     if text in ["yes", "y", "yeah", "correct"]:
       actual_text = pending_data['suggested']
       state.delete()
-      return {"response": f"Confirmed. Processing: {actual_text}\n" + run_logic(actual_text), "id": conversation_id}
+      return {"response": run_logic(actual_text), "id": conversation_id}
     elif text in ["no", "n", "nope"]:
       actual_text = pending_data['original']
       state.delete()
-      return {"response": f"Proceeding with original: {actual_text}\n" + run_logic(actual_text), "id": conversation_id}
+      return {"response": run_logic(actual_text), "id": conversation_id}
     else:
-      return {"response": f"Did you mean: '{pending_data['suggested']}'? Please say yes or no.", "id": conversation_id}
+      return {"response": f"Waiting for yes/no. Did you mean: '{pending_data['suggested']}'?", "id": conversation_id}
 
     # 2. AUTOCORRECT: Only words (no numbers/symbols)
   full_dict = get_dictionary()
@@ -107,9 +102,65 @@ def run(rtext, conversation_id=None):
 
   return {"response": run_logic(text), "id": conversation_id}
 
+def run_logic(text):
+  """The Brain: Dynamic Retrieval, Facts, and Actions."""
+  db = app_tables.database
+
+  # A. DYNAMIC RETRIEVAL (what is ...)
+  if text.startswith("what is"):
+    subject = text.replace("what is", "").replace("the", "").replace("of", "").strip()
+    row = db.get(Names=subject)
+    if row:
+      stored_val = str(row['Object']).strip()
+
+      # 1. Dynamic Python Expressions
+      if stored_val.startswith("py:"):
+        try:
+          expr = stored_val[3:].strip()
+          result = eval(expr, {"__builtins__": __builtins__}, {})
+          return f"The {subject} is {result}"
+        except Exception as e:
+          return f"Error evaluating {subject}: {str(e)}"
+
+          # 2. Pointer to Multi-line Action
+      action_exists = db.get(Names=stored_val)
+      if action_exists and "<" not in stored_val:
+        return run_action(stored_val)
+
+      return f"{subject} is {stored_val}"
+    return f"I don't know what {subject} is yet."
+
+    # B. COMPLEX QUERIES (is ..., which ..., what attribute ...)
+  if text.startswith("is "):
+    parts = re.sub(r"^(is the|is a|is) ", "", text).split(" ", 1)
+    if len(parts) == 2:
+      row = db.get(Names=parts[0].strip())
+      if row:
+        stored = str(row['Object']).lower()
+        return "Yes" if parts[1].strip() in stored else f"No, it is {stored}"
+
+    # C. DO ACTIONS
+  if text.startswith("do "):
+    fn_name = text[3:].strip()
+    return run_action(fn_name, {})
+
+    # D. FACT LEARNING
+  if " is " in text:
+    parts = text.split(" is ", 1)
+    name, obj = parts[0].strip(), parts[1].strip()
+    if any(x in name for x in ["that", "which", "who"]):
+      return "Sorry, I can't process complex clauses yet."
+
+    existing = db.get(Names=name)
+    if existing: existing['Object'] = obj
+    else: db.add_row(Names=name, Object=obj)
+    return f"Learned: {name} is now {obj}"
+
+  return "I understood the words, but have no logic for that command."
+
 @callable
 def run_action(fn, args={}):
-  """Executes multi-line Python code. Captures 'result' variable."""
+  """Executes multi-line Python code. Result must be in 'result' variable."""
   row = app_tables.database.get(Names=fn)
   if row:
     namespace = {}
@@ -120,37 +171,8 @@ def run_action(fn, args={}):
       exec(code, {"__builtins__": __builtins__}, namespace)
       return namespace.get("result", f"Action {fn} finished.")
     except Exception as e:
-      return f"Code error in {fn}: {str(e)}"
+      return f"Code error: {str(e)}"
   return f"Action '{fn}' not found."
-
-def run_logic(text):
-  """Core Brain: Facts and Actions."""
-  db = app_tables.database
-
-  # Dynamic Fact Check
-  if text.startswith("what is"):
-    subject = text.replace("what is", "").replace("the", "").replace("of", "").strip()
-    row = db.get(Names=subject)
-    if row:
-      stored_val = str(row['Object'])
-      if db.get(Names=stored_val) and "<" not in stored_val:
-        return run_action(stored_val)
-      return f"{subject} is {stored_val}"
-
-    # Do Action
-  if text.startswith("do "):
-    fn_name = text[3:].strip()
-    return run_action(fn_name, {})
-
-  for i in [" is "," are "]:
-    if " is " in text:
-      parts = text.split(" is ", 1)
-      if parts[0].endswith('that') or parts[0].endswith('which'):
-        return "sorry, i can't do that yet"
-      db.add_row(Names=parts[0].strip(), Object=parts[1].strip())
-      return f"Confirmed: {parts[0].strip()} is {parts[1].strip()}"
-
-  return "I heard you, but I have no rule for that command yet."
 
 @callable
 def learn_from_webpage(url):
@@ -163,7 +185,7 @@ def learn_from_webpage(url):
     count = 0
     for sent in sentences:
       clean = sent.strip().lower()
-      if 5 <= len(clean.split()) <= 15:
+      if 5 <= len(clean.split()) <= 20:
         run_logic(clean)
         count += 1
     return f"Bulk learned {count} items from {url}."
