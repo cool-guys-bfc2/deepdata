@@ -16,7 +16,7 @@ class Form1(Form1Template):
   @handle("submit", "click")
   def submit_click(self, **event_args):
     """This method is called when the button is clicked"""
-    if "https://" not in self.text_area_1.text:
+    if ":" not in self.text_area_1.text:
       self.label_1.text+="\n"+anvil.server.call('run',self.text_area_1.text)
     else:
       anvil.server.call('learnfromurl',self.text_area_1.text)
