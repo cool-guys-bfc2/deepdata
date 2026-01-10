@@ -97,7 +97,7 @@ def run_logic(text):
     # 2. VERB-BASED LEARNING (Singularizes Subjects/Objects)
     # Pattern: [Subject] [Verb] [Description]
   match = re.search(r"(\w+)\s+(is|are|has|contains|owns)\s+(.+)", text)
-  if match and not text.startswith('what is'):
+  if match and not text.startswith('what is') and not text.startswith('who is'):
     subject = to_singular(match.group(1))
     verb = match.group(2)
     # Normalize 'are' to 'is' for database consistency
@@ -111,8 +111,8 @@ def run_logic(text):
     return f"Confirmed: {subject} {val_to_store}"
 
     # 3. KNOWLEDGE RETRIEVAL
-  if text.startswith("what is"):
-    subject = to_singular(text.replace("what is", "").replace("the", "").strip())
+  if text.startswith("what is") or text.startswith("who is"):
+    subject = text.replace("what is", "").replace("the", "").replace("who is","").replace('an ','').replace("a ",'').strip()
     row = db.get(Names=subject)
     if row:
       stored = str(row['Object'])
@@ -121,7 +121,7 @@ def run_logic(text):
           res = eval(stored[3:], {"__builtins__": None}, GLOBAL_ENV)
           return f"Result: {res}"
         except Exception as e: return f"Eval Error: {e}"
-      return f"{subject} {stored}"
+      return f"{subject} is {stored}"
     return f"I don't have information on {subject}."
 
   return "I recognized the words but don't have a logic pattern for that yet."

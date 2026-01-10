@@ -1,22 +1,5 @@
 allow_embedding: false
 db_schema:
-  actions:
-    client: none
-    columns:
-    - admin_ui: {order: 0, width: 200}
-      name: ID
-      type: number
-    - admin_ui: {order: 1, width: 200}
-      name: Function Call name
-      type: string
-    - admin_ui: {order: 2, width: 200}
-      name: Function
-      type: simpleObject
-    - admin_ui: {order: 3, width: 200}
-      name: Function relation map
-      type: string
-    server: full
-    title: Actions
   database:
     client: none
     columns:
