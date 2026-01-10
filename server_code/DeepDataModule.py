@@ -18,7 +18,7 @@ GLOBAL_ENV = {
   "re": re,
   "random": random,
   "app_tables": app_tables,
-  "ext_tool": external_tool_example 
+  "ext_tool": external_tool_example
 }
 
 # --- CONFIGURATION & DICTIONARY ---
@@ -138,7 +138,7 @@ def run_action(action_name, args):
 
     try:
       exec(code, {"__builtins__": __builtins__}, exec_context)
-      return f"Action '{action_name}' completed with {len(args)} args."
+      return f"Action '{action_name}' completed with {len(args)} args. Result is {exec_context['result']}."
     except Exception as e:
       return f"Action Error ({action_name}): {str(e)}"
   return f"Action '{action_name}' not found."
