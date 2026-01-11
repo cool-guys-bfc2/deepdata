@@ -20,6 +20,20 @@ db_schema:
       type: string
     server: full
     title: Database
+  files:
+    client: none
+    columns:
+    - admin_ui: {order: 0, width: 200}
+      name: path
+      type: string
+    - admin_ui: {order: 1, width: 200}
+      name: file
+      type: media
+    - admin_ui: {order: 2, width: 200}
+      name: file_version
+      type: string
+    server: full
+    title: Files
   session:
     client: none
     columns:
@@ -55,5 +69,8 @@ services:
 - client_config: {}
   server_config: {}
   source: /runtime/services/anvil/secrets.yml
+- client_config: {}
+  server_config: {file_table: files}
+  source: /runtime/services/anvil/files.yml
 startup_form: Form1
 uplink_visible: true

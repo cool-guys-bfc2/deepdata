@@ -33,7 +33,10 @@ class Form1(Form1Template):
       self.label_1.text+="\nYou: "+user_input
       self.label_1.text+="\nAI: "+res
       return
-      
+    if user_input.startswith("@generate "):
+      x=anvil.server.call('generate_on_cpu',user_input[10:])
+      anvil.media.download(x)
+      return
         
     # 2. Add user message to UI (optional: create a custom label or row)
     print(f"User: {user_input}") 
