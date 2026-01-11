@@ -35,7 +35,10 @@ class Form1(Form1Template):
       return
     if user_input.startswith("@generate "):
       x=anvil.server.call('generate_on_cpu',user_input[10:])
-      anvil.media.download(x)
+      try:
+        anvil.media.download(x)
+      except:
+        self.label_1.text+='\nError: '+str(x)
       return
         
     # 2. Add user message to UI (optional: create a custom label or row)
