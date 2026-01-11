@@ -86,7 +86,7 @@ def run_logic(text):
   # 1. DYNAMIC ACTION EXECUTION (ignores 'with' and 'and')
   if text.startswith("do "):
     # Regex to strip 'with' and 'and' as standalone words
-    clean_command = re.sub(r'\b(with|and)\b', '', text[3:])
+    clean_command = re.sub(r'\b(with|and|the)\b', '', text[3:])
     parts = clean_command.split()
     if not parts: return "Do what?"
 
@@ -99,6 +99,11 @@ def run_logic(text):
   match = re.search(r"(\w+)\s+(is|are|has|contains|owns)\s+(.+)", text)
   if match and not text.startswith('what is') and not text.startswith('who is'):
     subject = to_singular(match.group(1))
+    if len(subject.split(" or "))>1:
+      synonyms=subject.split(" or ")[1:]
+    else:
+      synonyms=[]
+    subject=subject.split(" or ")[0]
     verb = match.group(2)
     # Normalize 'are' to 'is' for database consistency
     canonical_verb = "is" if verb == "are" else verb
@@ -107,12 +112,15 @@ def run_logic(text):
     val_to_store = f"{canonical_verb} {obj}"
     existing = db.get(Names=subject)
     if existing: existing['Object'] = val_to_store
-    else: db.add_row(Names=subject, Object=val_to_store)
+    else: db.add_row(Names=subject, Object=val_to_store, Synonyms=",".join(synonyms))
     return f"Confirmed: {subject} {val_to_store}"
 
     # 3. KNOWLEDGE RETRIEVAL
   if text.startswith("what is") or text.startswith("who is"):
     subject = text.replace("what is", "").replace("the", "").replace("who is","").replace('an ','').replace("a ",'').strip()
+    if len(subject.split(" or "))>1:
+      synonyms=subject.split(" or ")[1:]
+    subject=subject.split(" or ")[0]
     row = db.get(Names=subject)
     if row:
       stored = str(row['Object'])
@@ -134,15 +142,17 @@ def run_action(action_name, args):
     code = str(row['Object'])
     # Context includes arguments and external tools
     exec_context = GLOBAL_ENV.copy()
+    exec_context["run"] = run_action
     exec_context['args'] = args 
 
     try:
       exec(code, {"__builtins__": __builtins__}, exec_context)
-      return f"Action '{action_name}' completed with {len(args)} args. Result is {exec_context['result']}."
+      return f"{str(exec_context['result'])}"
     except Exception as e:
       return f"Action Error ({action_name}): {str(e)}"
   return f"Action '{action_name}' not found."
-
+  
+GLOBAL_ENV["action"]=run_action
 # --- WIKIPEDIA LEARNING ---
 @callable
 def learn_from_wikipedia(url, conversation_id=None):
