@@ -62,3 +62,14 @@ class Form1(Form1Template):
   def text_box_input_pressed_enter(self, **event_args):
     """Allows user to press 'Enter' instead of clicking the button."""
     self.button_send_click()
+  @handle("file_loader_1", "change")
+  def file_loader_1_change(self, file, **event_args):
+    # Show the uploaded image
+    self.image_1.source = file
+
+    # Call the server-side pre-trained model
+    self.label_status.text = "Analyzing image..."
+    result = anvil.server.call('detect_with_onnx', file)
+
+    # Display the ML result
+    self.label_status.text = f"Result: {result}"

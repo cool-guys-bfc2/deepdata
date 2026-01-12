@@ -17,8 +17,21 @@ components:
     name: label_1
     properties:
       text: |
-        AI Responses
+        Ai
     type: Label
+  - layout_properties: {grid_position: 'JABSPK,IYYMKQ'}
+    name: label_status
+    properties: {}
+    type: Label
+  - event_bindings: {}
+    layout_properties: {grid_position: 'LSKPMK,DMDLLC'}
+    name: file_loader_1
+    properties: {text: Upload}
+    type: FileLoader
+  - layout_properties: {grid_position: 'CVSKZR,TWDDAS'}
+    name: image_1
+    properties: {}
+    type: Image
   layout_properties: {slot: default}
   name: content_panel
   properties: {col_widths: '{}'}
