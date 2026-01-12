@@ -34,7 +34,7 @@ class Form1(Form1Template):
       self.label_1.text+="\nAI: "+res
       return
     if user_input.startswith("@generate "):
-      x=anvil.server.call('generate_on_cpu',user_input[10:])
+      x=anvil.server.call('detect_subject_and_blend',user_input[len("@generate "):])
       try:
         anvil.media.download(x)
       except:
