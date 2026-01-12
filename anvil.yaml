@@ -62,6 +62,9 @@ secrets:
   englishdict:
     type: secret
     value: {JZXXM4QNBUZC775B: e5H/q4qvlMIVRPBVn8WTutrQhI9nh5IYuQzeVmIe4SUv+JGbxyf7zY5nRriYeYcaCKgmZA1nDh+zn4kUxSCkzp0uHVlWBBvjkp5a16QyRj/7xsC4L6YMfRl6s2pNTjOzEBvwSs4gmXeI07lgnZ57tzwcsXepkh1NxMvoY8Vvzaen80bcsrOSN7vjGJxfReCdnC+GT/Yh9WJiVRPWU7mEkaZrt7EgbD67SvIA3HztLm08fiXhpa2X}
+  imagenet_url:
+    type: secret
+    value: {JZXXM4QNBUZC775B: 4tN5ygUhg6UagKM0ZDKv78v62OGJd4nMzkbc5jBZsHolDUPc3BV8/eYmFGQLn5+UHYppAgZbWcFL4v9rx74VQZ/CP2OD56gopL7uU+ZI89Y6Yv0sEL2WtSUnlgF50GAYHLwN2Gs5n09WiILNbF4Soqe394TnZ5AGh78eIhovtytnAs0Sk/+plfMPkNc1r86+tyBXO7rgS6lhZkYOKsLP}
 services:
 - client_config: {}
   server_config: {}
