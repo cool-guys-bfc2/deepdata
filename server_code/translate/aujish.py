@@ -20,14 +20,20 @@ import re
 #for things that can be a or b you use (a|b)
 
 lang={
-  '# (is|are) #':r'\1 us \2',
+  '# (is|are) #':r'\1 est \3',
   'not #':r'nu \1',
-  '(a|an|one|single) #':r'um \1',
-  'no':'nu'
+  '(a|an|one|single) #':r'um \2',
+  'no':'nu',
+  '(the|this|that) #':'le \2'
 }
 langw={
   'apple':'$apal',
-  'bannana':'ban$ana'
+  'bannana':'ban$ana',
+  '(me|i|myself)':'mi',
+  '(you|yourself)':'tu',
+  '(us|ourselves)':'nes',
+  '(big|huge)':'gr$an',
+  "(small|tiny)":'peke'
 }
 ignore=[
   'are',
