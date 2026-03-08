@@ -29,8 +29,12 @@ langw={
   'apple':'$apal',
   'bannana':'ban$ana'
 }
-def format(x):
+ignore=[
+  'are'
+]
+def xformat(x):
   return x.replace('$a','\u0101')
+  
 """
 @anvil.server.callable
 def translate(x):
@@ -65,22 +69,20 @@ def translate(x):
   for k, v in lang.items():
     # Create the pattern: turn '#' into '(\w+)'
     # We don't use re.escape here because we want the () to be active
-    for i in k.split(' '):
-      if i in ['#']:
-        continue
-      else:
-        lw[i]=''
     pattern = k.replace('#', r'(\w+)')
     x = re.sub(pattern, v, x, flags=re.IGNORECASE)
 
     # Process individual word replacements
   for k, v in lw.items():
     # warning: Using \b (word boundaries) is safer than ' '+k+' '
-    x = x.replace(k,v)
+    x = re.sub("( |)"+k+"(es|s|'s|)( |)",' '+v+' ',x).strip()
   y=x.split(' ')
   ind=0
   for i in y:
     if i[len(i)-1] in [',','.',"!",'?']:
       i=''.join(list(i)[:-1])
     ind+=1
-  return format(' '.join(y))
+  x=' '.join(x)
+  for i in ignore:
+    x=x.replace(i,'')
+  return xformat(x)
