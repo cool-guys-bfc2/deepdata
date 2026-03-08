@@ -66,7 +66,10 @@ def translate(x):
     # Create the pattern: turn '#' into '(\w+)'
     # We don't use re.escape here because we want the () to be active
     for i in k.split(' '):
-      if i in ''
+      if i in ['#']:
+        continue
+      else:
+        lw[i]=''
     pattern = k.replace('#', r'(\w+)')
     x = re.sub(pattern, v, x, flags=re.IGNORECASE)
 
