@@ -30,7 +30,8 @@ langw={
   'bannana':'ban$ana'
 }
 ignore=[
-  'are'
+  'are',
+  "is"
 ]
 def xformat(x):
   return x.replace('$a','\u0101')
@@ -82,7 +83,7 @@ def translate(x):
     if i[len(i)-1] in [',','.',"!",'?']:
       i=''.join(list(i)[:-1])
     ind+=1
-  x=' '.join(x)
+  x=' '.join(y)
   for i in ignore:
     x=x.replace(i,'')
-  return xformat(x)
+  return xformat(x).replace('$a','\u0101')
