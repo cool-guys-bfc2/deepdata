@@ -42,7 +42,7 @@ renamed: true
 runtime_options:
   client_version: '3'
   legacy_features: {bootstrap3: true, class_names: true}
-  server_spec: {base: python310-standard}
+  server_spec: {base: python310-machine-learning}
   version: 3
 secrets:
   englishdict:

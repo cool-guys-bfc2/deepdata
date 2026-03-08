@@ -13,6 +13,11 @@ components:
     name: button_send
     properties: {bold: true, icon: 'fa:arrow-circle-right', icon_align: right, italic: false, role: outlined-button, text: Submit, underline: true}
     type: Button
+  - event_bindings: {}
+    layout_properties: {grid_position: 'PKSFUL,CYBTTY'}
+    name: button_1
+    properties: {icon: 'fa:language', text: Translate}
+    type: Button
   - layout_properties: {grid_position: 'OEXIFP,NPUYQE'}
     name: label_1
     properties:
@@ -31,6 +36,11 @@ components:
   name: label_2
   properties: {align: left, bold: true, icon: 'fa:commenting-o', text: 'DeepData '}
   type: Label
+- event_bindings: {}
+  layout_properties: {slot: left-nav}
+  name: file_loader_1
+  properties: {}
+  type: FileLoader
 container:
   properties: {html: '@theme:standard-page.html'}
   type: HtmlTemplate

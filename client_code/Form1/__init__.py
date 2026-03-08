@@ -14,6 +14,7 @@ class Form1(Form1Template):
     # Initialize the Conversation ID as None 
     # (The server will generate one on the first call)
     self.conversation_id = random.randint(100,999)
+    self.fs=[]
 
   @handle("button_send", "click")
   def button_send_click(self, **event_args):
@@ -63,3 +64,20 @@ class Form1(Form1Template):
   def text_box_input_pressed_enter(self, **event_args):
     """Allows user to press 'Enter' instead of clicking the button."""
     self.button_send_click()
+
+  @handle("file_loader_1", "change")
+  def file_loader_1_change(self, file, **event_args):
+    """This method is called when a new file is loaded into this FileLoader"""
+    self.fs.append(file)
+    if len(self.fs)==2:
+      y=anvil.server.call_s('images_fast',self.fs[0],self.fs[1],mode='num')
+      m=str(round(y*1000))
+      m+='/1000'
+      alert(m)
+      self.fs=[]
+
+  @handle("button_1", "click")
+  def button_1_click(self, **event_args):
+    """This method is called when the button is clicked"""
+    x=anvil.server.call('translate',self.text_box_input.text)
+    self.label_1.text+='\n'+x
