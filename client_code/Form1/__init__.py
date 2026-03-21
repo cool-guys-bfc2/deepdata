@@ -1,5 +1,7 @@
 from ._anvil_designer import Form1Template
 from anvil import *
+import anvil.google.auth, anvil.google.drive
+from anvil.google.drive import app_files
 import anvil.server
 import anvil.tables as tables
 import anvil.tables.query as q
@@ -71,8 +73,12 @@ class Form1(Form1Template):
     self.fs.append(file)
     if len(self.fs)==2:
       y=anvil.server.call_s('images_fast',self.fs[0],self.fs[1],mode='num')
-      m=str(round(y*1000))
-      m+='/1000'
+      if isinstance(y,int):
+        m=str(round(y*1000)/10)
+        m+='%'
+      elif isinstance(y,str):
+        m='Looks to me like: '+y
+        m+='\n(Descriptions are not a)'
       alert(m)
       self.fs=[]
 
